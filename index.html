@@ -28,9 +28,9 @@
   <h3>ログ</h3>
   <div id="log"></div>
 
-  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://battleship-br.onrender.com/socket.io/socket.io.js"></script>
   <script>
-    const socket = io();
+    const socket = io("https://battleship-br.onrender.com");
     const GRID_SIZE = 10;
     let currentPlayers = {};
     let selectedActionType = 'move'; // 'move' or 'attack'
