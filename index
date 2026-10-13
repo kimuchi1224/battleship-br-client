@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>海戦バトルロワイヤル</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; background: #111; color: #fff; }
+    #grid { display: grid; grid-template-columns: repeat(10, 40px); gap: 2px; justify-content: center; margin: 20px auto; }
+    .cell { width: 40px; height: 40px; background: #222; border: 1px solid #444; display: flex; align-items: center; justify-content: center; font-size: 10px; cursor: pointer; }
+    .cell.me { background: #0055ff; }
+    .cell.enemy { background: #aa0000; }
+    #log { width: 400px; height: 120px; background: #222; margin: 10px auto; padding: 10px; text-align: left; overflow-y: auto; font-size: 12px; border: 1px solid #444; }
+    .controls { margin-top: 15px; }
+    button { padding: 8px 16px; font-size: 14px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>海戦バトルロワイヤル (プロトタイプ)</h1>
+  <p id="status">自マスの選択状態: 移動先 または 攻撃先を選んでください</p>
+  
+  <div class="controls">
+    <button id="modeBtn" onclick="toggleMode()">モード切替: 移動</button>
+    <button onclick="sendAction()" style="background: #28a745; color: #fff;">行動確定 (ターン終了)</button>
+  </div>
+
+  <div id="grid"></div>
+
+  <h3>ログ</h3>
+  <div id="log"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const GRID_SIZE = 10;
+    let currentPlayers = {};
+    let selectedActionType = 'move'; // 'move' or 'attack'
+    let selectedTarget = { x: null, y: null };
+
+    const gridEl = document.getElementById('grid');
+    const logEl = document.getElementById('log');
+    const statusEl = document.getElementById('status');
+    const modeBtn = document.getElementById('modeBtn');
+
+    // グリッド生成
+    for (let y = 0; y < GRID_SIZE; y++) {
+      for (let x = 0; x < GRID_SIZE; x++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.id = `cell-${x}-${y}`;
+        cell.onclick = () => selectCell(x, y);
+        gridEl.appendChild(cell);
+      }
+    }
+
+    function toggleMode() {
+      selectedActionType = (selectedActionType === 'move') ? 'attack' : 'move';
+      modeBtn.innerText = `モード切替: ${selectedActionType === 'move' ? '移動' : '攻撃'}`;
+      modeBtn.style.background = selectedActionType === 'move' ? '' : '#d9534f';
+    }
+
+    function selectCell(x, y) {
+      selectedTarget = { x, y };
+      statusEl.innerText = `選択中: (${x}, ${y}) [${selectedActionType === 'move' ? '移動先' : '攻撃先'}]`;
+    }
+
+    function sendAction() {
+      if (selectedTarget.x === null) {
+        alert('グリッド上のマスを選択してください');
+        return;
+      }
+      socket.emit('submitAction', {
+        type: selectedActionType,
+        x: selectedTarget.x,
+        y: selectedTarget.y,
+        targetX: selectedTarget.x,
+        targetY: selectedTarget.y
+      });
+      statusEl.innerText = '行動を送信しました。他のプレイヤーを待っています...';
+    }
+
+    socket.on('updateState', (players) => {
+      currentPlayers = players;
+      renderGrid();
+    });
+
+    socket.on('turnResult', (data) => {
+      data.logs.forEach(msg => {
+        const p = document.createElement('p');
+        p.innerText = msg;
+        logEl.appendChild(p);
+      });
+      logEl.scrollTop = logEl.scrollHeight;
+    });
+
+    function renderGrid() {
+      for (let y = 0; y < GRID_SIZE; y++) {
+        for (let x = 0; x < GRID_SIZE; x++) {
+          const cell = document.getElementById(`cell-${x}-${y}`);
+          cell.className = 'cell';
+          cell.innerText = `${x},${y}`;
+
+          // プレイヤーの描画（自分の位置だけ見えるようにする、または全員表示）
+          for (let id in currentPlayers) {
+            const p = currentPlayers[id];
+            if (p.x === x && p.y === y && p.alive) {
+              if (id === socket.id) {
+                cell.classList.add('me');
+                cell.innerText = `自HP:${p.hp}`;
+              } else {
+                // 他人の位置は「海戦ゲーム」らしく基本見えないようにするか、デバッグ用に表示するか
+                // ここではデバッグ用に薄く表示
+                cell.classList.add('enemy');
+                cell.innerText = `敵`;
+              }
+            }
+          }
+        }
+      }
+    }
+  </script>
+</body>
+</html>
