@@ -27,7 +27,7 @@
   <!-- ロビー画面 -->
   <div id="lobby">
     <h2>ロビー</h2>
-    <div>
+    <div style="margin-bottom: 10px;">
       <label>グリッドサイズ: 
         <select id="gridSizeSelect" onchange="updateSettings()">
           <option value="8">8 x 8</option>
@@ -36,11 +36,22 @@
         </select>
       </label>
     </div>
-    <h3>参加プレイヤー</h3>
+    <div style="margin-bottom: 15px;">
+      <label>Bot（NPC）の数: 
+        <select id="botCountSelect" onchange="updateSettings()">
+          <option value="0">0体 (少人数対戦用)</option>
+          <option value="1">1体</option>
+          <option value="2">2体</option>
+          <option value="3" selected>3体</option>
+          <option value="5">5体</option>
+        </select>
+      </label>
+    </div>
+    <h3>参加プレイヤー＆Bot</h3>
     <ul id="playerList" style="list-style: none; padding: 0;"></ul>
     <div>
       <button onclick="toggleReady()">準備完了切り替え</button>
-      <button onclick="startGame()" style="background: #28a745;">ゲーム開始</button>
+      <button onclick="startGame()" style="background: #28a745;">ゲーム開始 (テストプレイ)</button>
     </div>
   </div>
 
@@ -60,12 +71,12 @@
     <div id="log"></div>
   </div>
 
-  <!-- ⚠️ 実際の Render の URL に書き換えてください -->
+  <!-- ⚠️ ご自身の Render URL に書き換えてください -->
   <script src="https://battleship-br.onrender.com/socket.io/socket.io.js"></script>
   <script>
     const socket = io("https://battleship-br.onrender.com");
 
-    let currentSettings = { gridSize: 10 };
+    let currentSettings = { gridSize: 10, botCount: 3 };
     let currentPlayers = {};
     let mapObjects = {};
     let gameState = 'lobby';
@@ -73,10 +84,10 @@
     let selectedActionType = 'move';
     let selectedTarget = { x: null, y: null };
 
-    // ロビー用関数
     function updateSettings() {
       const size = document.getElementById('gridSizeSelect').value;
-      socket.emit('updateSettings', { gridSize: size });
+      const bots = document.getElementById('botCountSelect').value;
+      socket.emit('updateSettings', { gridSize: size, botCount: bots });
     }
 
     function toggleReady() {
@@ -87,7 +98,6 @@
       socket.emit('startGame');
     }
 
-    // ゲーム用関数
     function toggleMode() {
       selectedActionType = (selectedActionType === 'move') ? 'attack' : 'move';
       const modeBtn = document.getElementById('modeBtn');
@@ -112,10 +122,9 @@
         targetX: selectedTarget.x,
         targetY: selectedTarget.y
       });
-      document.getElementById('status').innerText = '行動を送信しました。他のプレイヤーを待っています...';
+      document.getElementById('status').innerText = '行動を送信しました。Botの行動を待っています...';
     }
 
-    // --- Socket イベント受信 ---
     socket.on('updateState', (data) => {
       currentPlayers = data.players;
       gameState = data.gameState;
@@ -134,6 +143,7 @@
     socket.on('settingsUpdated', (settings) => {
       currentSettings = settings;
       document.getElementById('gridSizeSelect').value = settings.gridSize;
+      document.getElementById('botCountSelect').value = settings.botCount;
     });
 
     socket.on('gameStarted', (data) => {
@@ -160,7 +170,6 @@
       renderGame();
     });
 
-    // --- 描画関数 ---
     function renderPlayerList() {
       const listEl = document.getElementById('playerList');
       listEl.innerHTML = '';
@@ -206,7 +215,6 @@
           cell.innerText = `${x},${y}`;
 
           const key = `${x},${y}`;
-          // 地形・オブジェクト
           if (mapObjects[key]) {
             const obj = mapObjects[key];
             if (obj.type === 'rock') {
@@ -221,13 +229,11 @@
             }
           }
 
-          // 安全地帯の外側
           const distFromCenter = Math.max(Math.abs(x - center), Math.abs(y - center));
           if (distFromCenter > safeZoneRadius) {
             cell.classList.add('safe-out');
           }
 
-          // プレイヤー
           for (let id in currentPlayers) {
             const p = currentPlayers[id];
             if (p.x === x && p.y === y && p.alive) {
@@ -236,7 +242,7 @@
                 cell.innerText = `自HP:${p.hp}`;
               } else {
                 cell.classList.add('enemy');
-                cell.innerText = `敵`;
+                cell.innerText = p.isBot ? `Bot` : `敵`;
               }
             }
           }
