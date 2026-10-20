@@ -4,31 +4,60 @@
   <meta charset="UTF-8">
   <title>海戦バトルロワイヤル</title>
   <style>
-    body { font-family: sans-serif; text-align: center; background: #111; color: #fff; margin: 0; padding: 20px; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #0f172a; color: #f8fafc; margin: 0; padding: 20px; }
     .hidden { display: none !important; }
-    #lobby, #game { max-width: 600px; margin: 0 auto; background: #1a1a1a; padding: 20px; border-radius: 8px; border: 1px solid #333; }
-    #grid { display: grid; gap: 2px; justify-content: center; margin: 20px auto; }
-    .cell { width: 38px; height: 38px; background: #222; border: 1px solid #444; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 9px; cursor: pointer; position: relative; }
-    .cell.me { background: #0055ff; }
-    .cell.enemy { background: rgba(170, 0, 0, 0.6); }
-    .cell.rock { background: #555; }
-    .cell.treasure { background: #b8860b; }
-    .cell.grass { background: #2e8b57; }
-    .cell.safe-out { border: 2px dashed #ff4444; }
-    #log { width: 100%; height: 120px; background: #111; margin: 10px auto; padding: 10px; text-align: left; overflow-y: auto; font-size: 11px; border: 1px solid #444; box-sizing: border-box; }
-    button { padding: 8px 16px; font-size: 14px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; margin: 5px; }
-    button:hover { background: #0056b3; }
-    select { padding: 6px; font-size: 14px; margin: 5px; background: #222; color: #fff; border: 1px solid #444; }
+    #lobby, #game { max-width: 650px; margin: 0 auto; background: #1e293b; padding: 24px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+    
+    /* ステータスバッジ */
+    .status-card { display: flex; justify-content: space-around; background: #0f172a; padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #334155; }
+    .badge { padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 13px; }
+    .badge-move { background: #0284c7; color: white; }
+    .badge-attack { background: #e11d48; color: white; }
+    .badge-waiting { background: #eab308; color: #1e293b; }
+
+    #grid { display: grid; gap: 4px; justify-content: center; margin: 20px auto; user-select: none; }
+    
+    /* セルデザインとアニメーション */
+    .cell { width: 42px; height: 42px; background: #334155; border: 1px solid #475569; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; cursor: pointer; transition: all 0.15s ease; position: relative; }
+    .cell:hover { transform: scale(1.08); border-color: #38bdf8; z-index: 10; box-shadow: 0 0 10px rgba(56, 189, 248, 0.5); }
+    
+    /* 選択中の演出 */
+    .cell.selected-move { border: 2px solid #38bdf8 !important; background: #0369a1 !important; animation: pulse-blue 1.5s infinite; }
+    .cell.selected-attack { border: 2px solid #f43f5e !important; background: #be123c !important; animation: pulse-red 1.5s infinite; }
+    
+    @keyframes pulse-blue { 0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7); } 70% { box-shadow: 0 0 0 8px rgba(56, 189, 248, 0); } 100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); } }
+    @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.7); } 70% { box-shadow: 0 0 0 8px rgba(244, 63, 94, 0); } 100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0); } }
+
+    /* 地形と毒エリア */
+    .cell.me { background: #2563eb; color: white; font-weight: bold; }
+    .cell.enemy { background: #991b1b; color: white; }
+    .cell.rock { background: #475569; }
+    .cell.treasure { background: #d97706; }
+    .cell.grass { background: #15803d; }
+    .cell.safe-out { border: 2px dashed #ef4444; background: rgba(239, 68, 68, 0.15); animation: alert-flash 2s infinite; }
+
+    @keyframes alert-flash { 0%, 100% { background: rgba(239, 68, 68, 0.15); } 50% { background: rgba(239, 68, 68, 0.35); } }
+
+    #log { width: 100%; height: 130px; background: #0f172a; margin: 15px auto 0; padding: 12px; text-align: left; overflow-y: auto; font-size: 12px; border: 1px solid #334155; border-radius: 6px; box-sizing: border-box; line-height: 1.5; }
+    
+    button { padding: 10px 20px; font-size: 14px; font-weight: bold; cursor: pointer; background: #2563eb; color: white; border: none; border-radius: 6px; margin: 5px; transition: background 0.2s; }
+    button:hover { background: #1d4ed8; }
+    button.btn-danger { background: #e11d48; }
+    button.btn-danger:hover { background: #be123c; }
+    button.btn-success { background: #16a34a; }
+    button.btn-success:hover { background: #15803d; }
+
+    select { padding: 8px; font-size: 14px; margin: 5px; background: #0f172a; color: #fff; border: 1px solid #334155; border-radius: 6px; }
   </style>
 </head>
 <body>
-  <h1>海戦バトルロワイヤル</h1>
+  <h1>⚓ 海戦バトルロワイヤル</h1>
 
   <!-- ロビー画面 -->
   <div id="lobby">
-    <h2>ロビー</h2>
-    <div style="margin-bottom: 10px;">
-      <label>グリッドサイズ: 
+    <h2>ゲームロビー</h2>
+    <div style="margin-bottom: 12px;">
+      <label>マップサイズ: 
         <select id="gridSizeSelect" onchange="updateSettings()">
           <option value="8">8 x 8</option>
           <option value="10" selected>10 x 10</option>
@@ -36,10 +65,10 @@
         </select>
       </label>
     </div>
-    <div style="margin-bottom: 15px;">
-      <label>Bot（NPC）の数: 
+    <div style="margin-bottom: 20px;">
+      <label>Bot（NPC）数: 
         <select id="botCountSelect" onchange="updateSettings()">
-          <option value="0">0体 (少人数対戦用)</option>
+          <option value="0">0体</option>
           <option value="1">1体</option>
           <option value="2">2体</option>
           <option value="3" selected>3体</option>
@@ -47,27 +76,31 @@
         </select>
       </label>
     </div>
-    <h3>参加プレイヤー＆Bot</h3>
-    <ul id="playerList" style="list-style: none; padding: 0;"></ul>
+    <h3>参加プレイヤー</h3>
+    <ul id="playerList" style="list-style: none; padding: 0; margin-bottom: 20px;"></ul>
     <div>
-      <button onclick="toggleReady()">準備完了切り替え</button>
-      <button onclick="startGame()" style="background: #28a745;">ゲーム開始 (テストプレイ)</button>
+      <button id="readyBtn" onclick="toggleReady()">準備完了</button>
+      <button class="btn-success" onclick="startGame()">ゲーム開始</button>
     </div>
   </div>
 
   <!-- ゲーム画面 -->
   <div id="game" class="hidden">
-    <p id="status">自マスの選択状態: 移動先 または 攻撃先を選んでください</p>
-    <p id="turnInfo">弾薬: <span id="ammoCount">5</span>発</p>
+    <div class="status-card">
+      <div>モード: <span id="modeBadge" class="badge badge-move">移動</span></div>
+      <div>選択マス: <span id="targetPos" style="font-weight: bold; color: #38bdf8;">未選択</span></div>
+      <div>残弾数: <span id="ammoCount" style="font-weight: bold; color: #f59e0b;">5</span> 発</div>
+    </div>
     
     <div class="controls">
-      <button id="modeBtn" onclick="toggleMode()">モード切替: 移動</button>
-      <button onclick="sendAction()" style="background: #28a745;">行動確定 (ターン終了)</button>
+      <button id="modeBtn" onclick="toggleMode()">モード切替 (攻撃に変更)</button>
+      <button class="btn-success" onclick="sendAction()">行動確定</button>
+      <button id="restartBtn" class="btn-danger hidden" onclick="returnToLobby()">ロビーに戻る (リスタート)</button>
     </div>
 
     <div id="grid"></div>
 
-    <h3>ログ</h3>
+    <h3>戦闘ログ</h3>
     <div id="log"></div>
   </div>
 
@@ -98,16 +131,31 @@
       socket.emit('startGame');
     }
 
+    function returnToLobby() {
+      socket.emit('returnToLobby');
+    }
+
     function toggleMode() {
       selectedActionType = (selectedActionType === 'move') ? 'attack' : 'move';
       const modeBtn = document.getElementById('modeBtn');
-      modeBtn.innerText = `モード切替: ${selectedActionType === 'move' ? '移動' : '攻撃'}`;
-      modeBtn.style.background = selectedActionType === 'move' ? '#007bff' : '#d9534f';
+      const badge = document.getElementById('modeBadge');
+
+      if (selectedActionType === 'move') {
+        modeBtn.innerText = 'モード切替 (攻撃に変更)';
+        badge.innerText = '移動';
+        badge.className = 'badge badge-move';
+      } else {
+        modeBtn.innerText = 'モード切替 (移動に変更)';
+        badge.innerText = '攻撃';
+        badge.className = 'badge badge-attack';
+      }
+      renderGame();
     }
 
     function selectCell(x, y) {
       selectedTarget = { x, y };
-      document.getElementById('status').innerText = `選択中: (${x}, ${y}) [${selectedActionType === 'move' ? '移動先' : '攻撃先'}]`;
+      document.getElementById('targetPos').innerText = `(${x}, ${y})`;
+      renderGame();
     }
 
     function sendAction() {
@@ -122,7 +170,10 @@
         targetX: selectedTarget.x,
         targetY: selectedTarget.y
       });
-      document.getElementById('status').innerText = '行動を送信しました。Botの行動を待っています...';
+      
+      const badge = document.getElementById('modeBadge');
+      badge.innerText = '行動送信済み (待機中)';
+      badge.className = 'badge badge-waiting';
     }
 
     socket.on('updateState', (data) => {
@@ -133,10 +184,15 @@
       if (gameState === 'lobby') {
         document.getElementById('lobby').classList.remove('hidden');
         document.getElementById('game').classList.add('hidden');
+        document.getElementById('restartBtn').classList.add('hidden');
         renderPlayerList();
       } else {
         document.getElementById('lobby').classList.add('hidden');
         document.getElementById('game').classList.remove('hidden');
+
+        if (gameState === 'ended') {
+          document.getElementById('restartBtn').classList.remove('hidden');
+        }
       }
     });
 
@@ -149,6 +205,9 @@
     socket.on('gameStarted', (data) => {
       currentSettings = data.settings;
       mapObjects = data.mapObjects;
+      selectedTarget = { x: null, y: null };
+      document.getElementById('targetPos').innerText = '未選択';
+      document.getElementById('log').innerHTML = '';
       buildGrid(currentSettings.gridSize);
       renderGame();
     });
@@ -159,13 +218,22 @@
       gameState = data.gameState;
       safeZoneRadius = data.safeZoneRadius;
 
+      // モードバッジをリセット
+      const badge = document.getElementById('modeBadge');
+      badge.innerText = selectedActionType === 'move' ? '移動' : '攻撃';
+      badge.className = selectedActionType === 'move' ? 'badge badge-move' : 'badge badge-attack';
+
       const logEl = document.getElementById('log');
       data.logs.forEach(msg => {
-        const p = document.createElement('p');
+        const p = document.createElement('div');
         p.innerText = msg;
         logEl.appendChild(p);
       });
       logEl.scrollTop = logEl.scrollHeight;
+
+      if (gameState === 'ended') {
+        document.getElementById('restartBtn').classList.remove('hidden');
+      }
 
       renderGame();
     });
@@ -176,6 +244,7 @@
       for (let id in currentPlayers) {
         const p = currentPlayers[id];
         const li = document.createElement('li');
+        li.style.padding = '6px';
         li.innerText = `${p.name} - ${p.ready ? '✅ 準備完了' : '⏳ 待機中'}`;
         listEl.appendChild(li);
       }
@@ -183,7 +252,7 @@
 
     function buildGrid(size) {
       const gridEl = document.getElementById('grid');
-      gridEl.style.gridTemplateColumns = `repeat(${size}, 38px)`;
+      gridEl.style.gridTemplateColumns = `repeat(${size}, 42px)`;
       gridEl.innerHTML = '';
 
       for (let y = 0; y < size; y++) {
@@ -214,35 +283,47 @@
           cell.className = 'cell';
           cell.innerText = `${x},${y}`;
 
+          // 地形
           const key = `${x},${y}`;
           if (mapObjects[key]) {
             const obj = mapObjects[key];
             if (obj.type === 'rock') {
               cell.classList.add('rock');
-              cell.innerText = '岩';
+              cell.innerText = '🪨';
             } else if (obj.type === 'treasure') {
               cell.classList.add('treasure');
-              cell.innerText = obj.opened ? '空箱' : '宝箱';
+              cell.innerText = obj.opened ? '📦' : '🎁';
             } else if (obj.type === 'grass') {
               cell.classList.add('grass');
-              cell.innerText = '草';
+              cell.innerText = '🌿';
             }
           }
 
+          // 危険地帯
           const distFromCenter = Math.max(Math.abs(x - center), Math.abs(y - center));
           if (distFromCenter > safeZoneRadius) {
             cell.classList.add('safe-out');
           }
 
+          // 選択枠アニメーション演出
+          if (selectedTarget.x === x && selectedTarget.y === y) {
+            if (selectedActionType === 'move') {
+              cell.classList.add('selected-move');
+            } else {
+              cell.classList.add('selected-attack');
+            }
+          }
+
+          // プレイヤー
           for (let id in currentPlayers) {
             const p = currentPlayers[id];
             if (p.x === x && p.y === y && p.alive) {
               if (id === socket.id) {
                 cell.classList.add('me');
-                cell.innerText = `自HP:${p.hp}`;
+                cell.innerText = `自:${p.hp}`;
               } else {
                 cell.classList.add('enemy');
-                cell.innerText = p.isBot ? `Bot` : `敵`;
+                cell.innerText = p.isBot ? `🤖` : `敵`;
               }
             }
           }
