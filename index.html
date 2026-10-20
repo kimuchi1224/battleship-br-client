@@ -8,7 +8,6 @@
     .hidden { display: none !important; }
     #lobby, #game { max-width: 650px; margin: 0 auto; background: #1e293b; padding: 24px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
     
-    /* ステータスバッジ */
     .status-card { display: flex; justify-content: space-around; background: #0f172a; padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #334155; }
     .badge { padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 13px; }
     .badge-move { background: #0284c7; color: white; }
@@ -17,10 +16,18 @@
 
     #grid { display: grid; gap: 4px; justify-content: center; margin: 20px auto; user-select: none; }
     
-    /* セルデザインとアニメーション */
-    .cell { width: 42px; height: 42px; background: #334155; border: 1px solid #475569; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; cursor: pointer; transition: all 0.15s ease; position: relative; }
-    .cell:hover { transform: scale(1.08); border-color: #38bdf8; z-index: 10; box-shadow: 0 0 10px rgba(56, 189, 248, 0.5); }
+    .cell { width: 44px; height: 44px; background: #334155; border: 1px solid #475569; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 9px; cursor: pointer; transition: all 0.15s ease; position: relative; }
     
+    /* 高低差による背景色の微調整 (0:低地, 1:平地, 2:高地) */
+    .elevation-0 { background: #1e293b; }
+    .elevation-1 { background: #334155; }
+    .elevation-2 { background: #475569; }
+
+    /* 有効範囲のハイライト */
+    .cell.in-range-move { border: 2px dashed #38bdf8; background: rgba(3, 105, 161, 0.4); }
+    .cell.in-range-attack { border: 2px dashed #f43f5e; background: rgba(190, 18, 60, 0.4); }
+    .cell.in-range-move:hover, .cell.in-range-attack:hover { transform: scale(1.08); z-index: 10; }
+
     /* 選択中の演出 */
     .cell.selected-move { border: 2px solid #38bdf8 !important; background: #0369a1 !important; animation: pulse-blue 1.5s infinite; }
     .cell.selected-attack { border: 2px solid #f43f5e !important; background: #be123c !important; animation: pulse-red 1.5s infinite; }
@@ -28,15 +35,13 @@
     @keyframes pulse-blue { 0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7); } 70% { box-shadow: 0 0 0 8px rgba(56, 189, 248, 0); } 100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); } }
     @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.7); } 70% { box-shadow: 0 0 0 8px rgba(244, 63, 94, 0); } 100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0); } }
 
-    /* 地形と毒エリア */
-    .cell.me { background: #2563eb; color: white; font-weight: bold; }
-    .cell.enemy { background: #991b1b; color: white; }
-    .cell.rock { background: #475569; }
-    .cell.treasure { background: #d97706; }
-    .cell.grass { background: #15803d; }
-    .cell.safe-out { border: 2px dashed #ef4444; background: rgba(239, 68, 68, 0.15); animation: alert-flash 2s infinite; }
+    .cell.me { background: #2563eb !important; color: white; font-weight: bold; }
+    .cell.enemy { background: #991b1b !important; color: white; }
+    .cell.treasure { color: #f59e0b; font-weight: bold; }
+    .cell.grass { color: #22c55e; }
+    .cell.safe-out { border: 2px dashed #ef4444; background: rgba(239, 68, 68, 0.2); animation: alert-flash 2s infinite; }
 
-    @keyframes alert-flash { 0%, 100% { background: rgba(239, 68, 68, 0.15); } 50% { background: rgba(239, 68, 68, 0.35); } }
+    @keyframes alert-flash { 0%, 100% { background: rgba(239, 68, 68, 0.2); } 50% { background: rgba(239, 68, 68, 0.4); } }
 
     #log { width: 100%; height: 130px; background: #0f172a; margin: 15px auto 0; padding: 12px; text-align: left; overflow-y: auto; font-size: 12px; border: 1px solid #334155; border-radius: 6px; box-sizing: border-box; line-height: 1.5; }
     
@@ -51,7 +56,7 @@
   </style>
 </head>
 <body>
-  <h1>⚓ 海戦バトルロワイヤル</h1>
+  <h1>⚓ 海戦バトルロワイヤル (高低差システム版)</h1>
 
   <!-- ロビー画面 -->
   <div id="lobby">
@@ -95,7 +100,7 @@
     <div class="controls">
       <button id="modeBtn" onclick="toggleMode()">モード切替 (攻撃に変更)</button>
       <button class="btn-success" onclick="sendAction()">行動確定</button>
-      <button id="restartBtn" class="btn-danger hidden" onclick="returnToLobby()">ロビーに戻る (リスタート)</button>
+      <button id="restartBtn" class="btn-danger hidden" onclick="returnToLobby()">ロビーに戻る</button>
     </div>
 
     <div id="grid"></div>
@@ -153,14 +158,43 @@
     }
 
     function selectCell(x, y) {
-      selectedTarget = { x, y };
-      document.getElementById('targetPos').innerText = `(${x}, ${y})`;
-      renderGame();
+      const me = currentPlayers[socket.id];
+      if (!me) return;
+
+      // 範囲内かバリデーションチェックしてから選択
+      if (isCellInRange(x, y, me.x, me.y, selectedActionType)) {
+        selectedTarget = { x, y };
+        document.getElementById('targetPos').innerText = `(${x}, ${y})`;
+        renderGame();
+      } else {
+        alert('そのマスは現在のモードの有効範囲外です！');
+      }
+    }
+
+    // クライアント側での有効範囲判定
+    function isCellInRange(x, y, myX, myY, type) {
+      const currentCell = mapObjects[`${myX},${myY}`];
+      const elevation = currentCell ? currentCell.elevation : 1;
+
+      if (type === 'move') {
+        const maxMove = elevation === 2 ? 2 : 1;
+        const dist = Math.abs(myX - x) + Math.abs(myY - y);
+        return dist <= maxMove;
+      } else {
+        const targetCell = mapObjects[`${x},${y}`];
+        const targetElevation = targetCell ? targetCell.elevation : 1;
+        let maxRange = 3;
+        if (elevation > targetElevation) maxRange += 1;
+        if (elevation < targetElevation) maxRange -= 1;
+
+        const dist = Math.max(Math.abs(myX - x), Math.abs(myY - y));
+        return dist <= maxRange;
+      }
     }
 
     function sendAction() {
       if (selectedTarget.x === null) {
-        alert('グリッド上のマスを選択してください');
+        alert('有効なマスを選択してください');
         return;
       }
       socket.emit('submitAction', {
@@ -190,18 +224,19 @@
         document.getElementById('lobby').classList.add('hidden');
         document.getElementById('game').classList.remove('hidden');
 
-        // ★追加: リロード時など、ゲーム画面にいるのにグリッドがまだ生成されていない場合に自動復元
         const gridEl = document.getElementById('grid');
         if (gridEl && gridEl.children.length === 0 && currentSettings.gridSize) {
           buildGrid(currentSettings.gridSize);
         }
+
         if (gameState === 'ended') {
           document.getElementById('restartBtn').classList.remove('hidden');
-        }    
+        }
+        
         renderGame();
       }
     });
-    
+
     socket.on('settingsUpdated', (settings) => {
       currentSettings = settings;
       document.getElementById('gridSizeSelect').value = settings.gridSize;
@@ -224,7 +259,6 @@
       gameState = data.gameState;
       safeZoneRadius = data.safeZoneRadius;
 
-      // モードバッジをリセット
       const badge = document.getElementById('modeBadge');
       badge.innerText = selectedActionType === 'move' ? '移動' : '攻撃';
       badge.className = selectedActionType === 'move' ? 'badge badge-move' : 'badge badge-attack';
@@ -258,7 +292,7 @@
 
     function buildGrid(size) {
       const gridEl = document.getElementById('grid');
-      gridEl.style.gridTemplateColumns = `repeat(${size}, 42px)`;
+      gridEl.style.gridTemplateColumns = `repeat(${size}, 44px)`;
       gridEl.innerHTML = '';
 
       for (let y = 0; y < size; y++) {
@@ -275,8 +309,8 @@
     function renderGame() {
       const size = currentSettings.gridSize || 10;
       const center = Math.floor(size / 2);
-
       const me = currentPlayers[socket.id];
+
       if (me) {
         document.getElementById('ammoCount').innerText = me.ammo;
       }
@@ -287,21 +321,23 @@
           if (!cell) continue;
 
           cell.className = 'cell';
-          cell.innerText = `${x},${y}`;
-
-          // 地形
           const key = `${x},${y}`;
-          if (mapObjects[key]) {
-            const obj = mapObjects[key];
-            if (obj.type === 'rock') {
-              cell.classList.add('rock');
-              cell.innerText = '🪨';
-            } else if (obj.type === 'treasure') {
+          const cellData = mapObjects[key];
+          const elevation = cellData ? cellData.elevation : 1;
+
+          // 高度による基本クラス付与 (0:低地, 1:平地, 2:高地)
+          cell.classList.add(`elevation-${elevation}`);
+          
+          let label = `H${elevation}`;
+
+          // 地形オブジェクト
+          if (cellData) {
+            if (cellData.type === 'treasure') {
               cell.classList.add('treasure');
-              cell.innerText = obj.opened ? '📦' : '🎁';
-            } else if (obj.type === 'grass') {
+              label = cellData.opened ? '📦' : '🎁';
+            } else if (cellData.type === 'grass') {
               cell.classList.add('grass');
-              cell.innerText = '🌿';
+              label = '🌿';
             }
           }
 
@@ -311,7 +347,18 @@
             cell.classList.add('safe-out');
           }
 
-          // 選択枠アニメーション演出
+          // 自身の周囲の有効範囲をハイライト
+          if (me && me.alive) {
+            if (isCellInRange(x, y, me.x, me.y, selectedActionType)) {
+              if (selectedActionType === 'move') {
+                cell.classList.add('in-range-move');
+              } else {
+                cell.classList.add('in-range-attack');
+              }
+            }
+          }
+
+          // 選択枠アニメーション
           if (selectedTarget.x === x && selectedTarget.y === y) {
             if (selectedActionType === 'move') {
               cell.classList.add('selected-move');
@@ -326,13 +373,15 @@
             if (p.x === x && p.y === y && p.alive) {
               if (id === socket.id) {
                 cell.classList.add('me');
-                cell.innerText = `自:${p.hp}`;
+                label = `自:${p.hp}`;
               } else {
                 cell.classList.add('enemy');
-                cell.innerText = p.isBot ? `🤖` : `敵`;
+                label = p.isBot ? `🤖` : `敵`;
               }
             }
           }
+
+          cell.innerText = label;
         }
       }
     }
