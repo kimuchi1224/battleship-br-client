@@ -11,29 +11,30 @@
     .status-card { display: flex; justify-content: space-around; background: #0f172a; padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #334155; }
     .badge { padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 13px; }
     .badge-move { background: #0284c7; color: white; }
-    .badge-attack { background: #e11d48; color: white; }
+    .badge-attack { background: #0d9488; color: white; } /* 攻撃モードはティール/青緑系に調整 */
     .badge-waiting { background: #eab308; color: #1e293b; }
 
     #grid { display: grid; gap: 4px; justify-content: center; margin: 20px auto; user-select: none; }
     
     .cell { width: 44px; height: 44px; background: #334155; border: 1px solid #475569; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 9px; cursor: pointer; transition: all 0.15s ease; position: relative; }
     
-    /* 高低差による背景色の微調整 (0:低地, 1:平地, 2:高地) */
-    .elevation-0 { background: #1e293b; }
-    .elevation-1 { background: #334155; }
-    .elevation-2 { background: #475569; }
+    /* 高低差 H0〜H3 のグラデーション */
+    .elevation-0 { background: #0f172a; }
+    .elevation-1 { background: #1e293b; }
+    .elevation-2 { background: #334155; }
+    .elevation-3 { background: #64748b; font-weight: bold; }
 
-    /* 有効範囲のハイライト */
+    /* 有効範囲のハイライト（移動は青、攻撃はシアン/青緑系に変更して毒沼と区別） */
     .cell.in-range-move { border: 2px dashed #38bdf8; background: rgba(3, 105, 161, 0.4); }
-    .cell.in-range-attack { border: 2px dashed #f43f5e; background: rgba(190, 18, 60, 0.4); }
+    .cell.in-range-attack { border: 2px dashed #2dd4bf; background: rgba(13, 148, 136, 0.4); } 
     .cell.in-range-move:hover, .cell.in-range-attack:hover { transform: scale(1.08); z-index: 10; }
 
     /* 選択中の演出 */
     .cell.selected-move { border: 2px solid #38bdf8 !important; background: #0369a1 !important; animation: pulse-blue 1.5s infinite; }
-    .cell.selected-attack { border: 2px solid #f43f5e !important; background: #be123c !important; animation: pulse-red 1.5s infinite; }
+    .cell.selected-attack { border: 2px solid #2dd4bf !important; background: #0f766e !important; animation: pulse-teal 1.5s infinite; }
     
     @keyframes pulse-blue { 0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7); } 70% { box-shadow: 0 0 0 8px rgba(56, 189, 248, 0); } 100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); } }
-    @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.7); } 70% { box-shadow: 0 0 0 8px rgba(244, 63, 94, 0); } 100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0); } }
+    @keyframes pulse-teal { 0% { box-shadow: 0 0 0 0 rgba(45, 212, 191, 0.7); } 70% { box-shadow: 0 0 0 8px rgba(45, 212, 191, 0); } 100% { box-shadow: 0 0 0 0 rgba(45, 212, 191, 0); } }
 
     .cell.me { background: #2563eb !important; color: white; font-weight: bold; }
     .cell.enemy { background: #991b1b !important; color: white; }
@@ -56,7 +57,7 @@
   </style>
 </head>
 <body>
-  <h1>⚓ 海戦バトルロワイヤル (高低差システム版)</h1>
+  <h1>⚓ 海戦バトルロワイヤル (H0-H3 高低差版)</h1>
 
   <!-- ロビー画面 -->
   <div id="lobby">
@@ -161,34 +162,34 @@
       const me = currentPlayers[socket.id];
       if (!me) return;
 
-      // 範囲内かバリデーションチェックしてから選択
       if (isCellInRange(x, y, me.x, me.y, selectedActionType)) {
         selectedTarget = { x, y };
         document.getElementById('targetPos').innerText = `(${x}, ${y})`;
         renderGame();
       } else {
-        alert('そのマスは現在のモードの有効範囲外です！');
+        alert('そのマスは高低差または射程の制限により選択できません！');
       }
     }
 
-    // クライアント側での有効範囲判定
     function isCellInRange(x, y, myX, myY, type) {
       const currentCell = mapObjects[`${myX},${myY}`];
-      const elevation = currentCell ? currentCell.elevation : 1;
+      const targetCell = mapObjects[`${x},${y}`];
+      const currentElevation = currentCell ? currentCell.elevation : 1;
+      const targetElevation = targetCell ? targetCell.elevation : 1;
 
       if (type === 'move') {
-        const maxMove = elevation === 2 ? 2 : 1;
+        const elevationDiff = Math.abs(currentElevation - targetElevation);
+        const maxMove = currentElevation >= 2 ? 2 : 1;
         const dist = Math.abs(myX - x) + Math.abs(myY - y);
-        return dist <= maxMove;
+        // 差が2以上は移動不可
+        return elevationDiff < 2 && dist <= maxMove;
       } else {
-        const targetCell = mapObjects[`${x},${y}`];
-        const targetElevation = targetCell ? targetCell.elevation : 1;
         let maxRange = 3;
-        if (elevation > targetElevation) maxRange += 1;
-        if (elevation < targetElevation) maxRange -= 1;
+        if (currentElevation > targetElevation) maxRange += (currentElevation - targetElevation);
+        if (currentElevation < targetElevation) maxRange -= (targetElevation - currentElevation);
 
         const dist = Math.max(Math.abs(myX - x), Math.abs(myY - y));
-        return dist <= maxRange;
+        return dist <= Math.max(1, maxRange);
       }
     }
 
@@ -325,12 +326,9 @@
           const cellData = mapObjects[key];
           const elevation = cellData ? cellData.elevation : 1;
 
-          // 高度による基本クラス付与 (0:低地, 1:平地, 2:高地)
           cell.classList.add(`elevation-${elevation}`);
-          
           let label = `H${elevation}`;
 
-          // 地形オブジェクト
           if (cellData) {
             if (cellData.type === 'treasure') {
               cell.classList.add('treasure');
@@ -341,13 +339,11 @@
             }
           }
 
-          // 危険地帯
           const distFromCenter = Math.max(Math.abs(x - center), Math.abs(y - center));
           if (distFromCenter > safeZoneRadius) {
             cell.classList.add('safe-out');
           }
 
-          // 自身の周囲の有効範囲をハイライト
           if (me && me.alive) {
             if (isCellInRange(x, y, me.x, me.y, selectedActionType)) {
               if (selectedActionType === 'move') {
@@ -358,7 +354,6 @@
             }
           }
 
-          // 選択枠アニメーション
           if (selectedTarget.x === x && selectedTarget.y === y) {
             if (selectedActionType === 'move') {
               cell.classList.add('selected-move');
@@ -367,7 +362,6 @@
             }
           }
 
-          // プレイヤー
           for (let id in currentPlayers) {
             const p = currentPlayers[id];
             if (p.x === x && p.y === y && p.alive) {
