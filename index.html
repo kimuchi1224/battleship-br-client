@@ -190,12 +190,18 @@
         document.getElementById('lobby').classList.add('hidden');
         document.getElementById('game').classList.remove('hidden');
 
+        // ★追加: リロード時など、ゲーム画面にいるのにグリッドがまだ生成されていない場合に自動復元
+        const gridEl = document.getElementById('grid');
+        if (gridEl && gridEl.children.length === 0 && currentSettings.gridSize) {
+          buildGrid(currentSettings.gridSize);
+        }
         if (gameState === 'ended') {
           document.getElementById('restartBtn').classList.remove('hidden');
-        }
+        }    
+        renderGame();
       }
     });
-
+    
     socket.on('settingsUpdated', (settings) => {
       currentSettings = settings;
       document.getElementById('gridSizeSelect').value = settings.gridSize;
