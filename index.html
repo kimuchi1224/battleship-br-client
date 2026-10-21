@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>海戦バトルロワイヤル</title>
+  <title>Stealth Attack - 海戦バトルロワイヤル</title>
   <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #090d16; color: #f8fafc; margin: 0; padding: 20px; }
     .hidden { display: none !important; }
@@ -10,18 +10,16 @@
     #lobby { max-width: 650px; margin: 0 auto; background: #1e293b; padding: 24px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
     
     #game { max-width: 1150px; margin: 0 auto; display: grid; grid-template-columns: 1fr 340px; gap: 20px; text-align: left; }
-    .game-main { background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid #334155; }
+    .game-main { background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid #334155; position: relative; overflow: hidden; }
     .game-sidebar { display: flex; flex-direction: column; gap: 15px; }
 
     .panel { background: #1e293b; padding: 16px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
     
-    /* コマンド選択バー */
     .command-bar { display: flex; gap: 8px; margin-bottom: 12px; background: #0f172a; padding: 8px; border-radius: 8px; border: 1px solid #334155; }
     .command-btn { flex: 1; padding: 10px; font-weight: bold; font-size: 13px; background: #334155; color: #cbd5e1; border: none; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
     .command-btn.active { background: #2563eb; color: white; box-shadow: 0 0 10px rgba(37, 99, 235, 0.5); }
     .command-btn:hover { background: #475569; }
 
-    /* サブコンボ・アクションエリア */
     .action-panel { background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid #334155; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
 
     .dashboard { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px; font-size: 12px; }
@@ -38,6 +36,8 @@
     
     .cell { width: 38px; height: 38px; background: #334155; border: 1px solid #475569; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 9px; cursor: pointer; transition: all 0.12s ease; position: relative; }
     
+    /* マップ高度 ＆ 通行不可（水辺・奈落） */
+    .elevation--1 { background: #020617; border: 1px dashed #1e293b; color: #334155; cursor: not-allowed; }
     .elevation-0 { background: #0b1329; color: #94a3b8; }
     .elevation-1 { background: #1b263b; color: #cbd5e1; }
     .elevation-2 { background: #334155; color: #f1f5f9; }
@@ -50,10 +50,26 @@
     .cell.selected { border: 2px solid #fbbf24 !important; box-shadow: 0 0 8px rgba(251, 191, 36, 0.7); z-index: 5; }
 
     .cell.me { background: #2563eb !important; color: white; font-weight: bold; }
-    .cell.enemy { background: #991b1b !important; color: white; }
     .cell.treasure { color: #f59e0b; font-weight: bold; }
     .cell.grass { color: #22c55e; }
     .cell.safe-out { border: 2px dashed #ef4444; background: rgba(239, 68, 68, 0.2); }
+
+    /* ダイナミック戦闘演出（スクリーンシェイク＆フラッシュ） */
+    @keyframes screen-shake {
+      0% { transform: translate(0, 0); }
+      20% { transform: translate(-4px, 4px); }
+      40% { transform: translate(4px, -4px); }
+      60% { transform: translate(-3px, -2px); }
+      80% { transform: translate(2px, 3px); }
+      100% { transform: translate(0, 0); }
+    }
+    .shake-effect { animation: screen-shake 0.4s ease-in-out; }
+
+    @keyframes flash-red {
+      0% { background-color: rgba(225, 29, 72, 0.4); }
+      100% { background-color: #1e293b; }
+    }
+    .flash-effect { animation: flash-red 0.5s ease-out; }
 
     #log { width: 100%; height: 160px; background: #0f172a; margin-top: 5px; padding: 10px; text-align: left; overflow-y: auto; font-size: 11px; border: 1px solid #334155; border-radius: 6px; box-sizing: border-box; line-height: 1.5; }
     
@@ -68,14 +84,24 @@
   </style>
 </head>
 <body>
-  <h1 style="text-align: center; margin-bottom: 20px;">⚓ 海戦バトルロワイヤル</h1>
+  <h1 style="text-align: center; margin-bottom: 20px;">🕵️‍♂️ Stealth Attack - 海戦バトルロワイヤル</h1>
 
   <!-- ロビー画面 -->
   <div id="lobby">
     <h2>ゲームロビー</h2>
-    <div style="margin-bottom: 15px;">
+    <div style="margin-bottom: 12px;">
       <label>プレイヤー名: <input type="text" id="nameInput" maxlength="15" value="Player"></label>
       <button onclick="updateName()">名前変更</button>
+    </div>
+
+    <div style="margin-bottom: 12px;">
+      <label>兵装選択: 
+        <select id="weaponSelect" onchange="updateWeapon()">
+          <option value="standard">標準砲弾 (バランス型)</option>
+          <option value="sniper">スナイパー砲 (超遠距離・重装備)</option>
+          <option value="grenade">グレネード (範囲爆破)</option>
+        </select>
+      </label>
     </div>
 
     <div style="margin-bottom: 10px;">
@@ -88,7 +114,7 @@
       </label>
     </div>
     <div style="margin-bottom: 15px;">
-      <label>Bot（NPC）数: 
+      <label>Bot（潜伏者）数: 
         <select id="botCountSelect" onchange="updateSettings()" disabled>
           <option value="2">2体</option>
           <option value="4" selected>4体</option>
@@ -108,7 +134,7 @@
 
   <!-- ゲーム画面 (2カラム) -->
   <div id="game" class="hidden">
-    <div class="game-main">
+    <div class="game-main" id="mainGameContainer">
       <!-- 1. フェーズ切り替えコマンドバー -->
       <div class="command-bar">
         <button id="cmdMove" class="command-btn active" onclick="setCommandPhase('move')">🚶‍♂️ 移動</button>
@@ -119,7 +145,7 @@
 
       <!-- 2. アクション確定サブエリア -->
       <div class="action-panel">
-        <div>選択状態: <span id="modeBadge" class="badge badge-move">移動選択</span></div>
+        <div>選択状態: <span id="modeBadge" class="badge badge-move">移動先を選択中</span></div>
         <div id="itemSelectorArea" class="hidden">
           <label style="font-size: 12px;">使用道具: 
             <select id="itemSelect" onchange="onItemSelectChange()"></select>
@@ -142,12 +168,12 @@
         <h3 style="margin-top:0; font-size:15px; border-bottom:1px solid #334155; padding-bottom:8px;">ステータス & 装備</h3>
         <div class="dashboard">
           <div>HP: <span id="myHp">100</span></div>
-          <div>弾薬: <span id="ammoCount">8</span>発</div>
+          <div>弾薬: <span id="ammoCount">10</span>発</div>
           <div>生存: <span id="aliveCount">0</span>人</div>
-          <div>ホスト: <span id="hostName">-</span></div>
+          <div>兵装: <span id="myWeaponName" style="color: #38bdf8;">標準</span></div>
         </div>
         <div style="font-size: 12px; margin-top: 6px;">
-          <b>装備:</b>
+          <b>パッシブ装備:</b>
           <ul id="passiveList" style="padding-left: 20px; margin: 4px 0; color: #38bdf8;"><li>なし</li></ul>
         </div>
         <div style="font-size: 12px; margin-top: 6px;">
@@ -160,22 +186,21 @@
       <div class="panel">
         <h3 style="margin-top:0; font-size:15px; border-bottom:1px solid #334155; padding-bottom:8px;">🔍 マス詳細インスペクター</h3>
         <div id="inspectorContent" style="font-size: 12px; line-height: 1.6; color: #cbd5e1;">
-          マスをクリックすると詳細が表示されます。
+          マスをクリックして気配や地形を探知してください。
         </div>
       </div>
 
       <!-- 戦闘ログ -->
       <div class="panel" style="flex-grow: 1;">
-        <h3 style="margin-top:0; font-size:15px; border-bottom:1px solid #334155; padding-bottom:8px;">戦闘ログ</h3>
+        <h3 style="margin-top:0; font-size:15px; border-bottom:1px solid #334155; padding-bottom:8px;">潜伏・戦闘ログ</h3>
         <div id="log"></div>
       </div>
     </div>
   </div>
 
-  <!-- ⚠️ ご自身の Render URL に書き換えてください -->
-  <script src="https://battleship-br.onrender.com/socket.io/socket.io.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
   <script>
-    const socket = io("https://battleship-br.onrender.com");
+    const socket = io();
 
     let currentSettings = { gridSize: 14, botCount: 4 };
     let currentPlayers = {};
@@ -184,7 +209,6 @@
     let safeZoneRadius = 7;
     let hostSocketId = null;
     
-    // アクションフェーズ: 'move', 'attack', 'search', 'item'
     let currentPhase = 'move';
     let selectedItemId = null;
     let selectedTarget = { x: null, y: null };
@@ -193,6 +217,11 @@
     function updateName() {
       const name = document.getElementById('nameInput').value;
       socket.emit('updateName', name);
+    }
+
+    function updateWeapon() {
+      const weaponId = document.getElementById('weaponSelect').value;
+      socket.emit('updateWeapon', weaponId);
     }
 
     function updateSettings() {
@@ -219,7 +248,6 @@
       socket.emit('returnToLobby');
     }
 
-    // コマンドフェーズ切り替え
     function setCommandPhase(phase) {
       currentPhase = phase;
       
@@ -311,20 +339,24 @@
         return;
       }
 
-      html += `<b>高低差:</b> H${cellData.elevation}<br>`;
-      let objName = 'なし（平地）';
-      if (cellData.type === 'treasure') objName = cellData.opened ? '宝箱 (空)' : '宝箱 (未開封)';
-      if (cellData.type === 'grass') objName = '草原';
-      html += `<b>地形:</b> ${objName}<br>`;
+      if (cellData.elevation === -1) {
+        html += `<span style="color: #3b82f6;">💧 水辺・通行不能エリア</span>`;
+      } else {
+        html += `<b>高低差:</b> H${cellData.elevation}<br>`;
+        let objName = 'なし';
+        if (cellData.type === 'treasure') objName = cellData.opened ? '宝箱 (空)' : '宝箱 (未開封)';
+        if (cellData.type === 'grass') objName = '草原';
+        html += `<b>地形:</b> ${objName}<br>`;
+      }
 
-      let occupant = 'なし';
+      let occupant = '気配なし';
       for (let id in currentPlayers) {
         const p = currentPlayers[id];
         if (p.x === x && p.y === y && p.alive) {
-          occupant = (id === socket.id) ? `あなた (${p.name})` : p.name;
+          occupant = (id === socket.id) ? `あなた (${p.name})` : '⚠️ 隠れた気配あり';
         }
       }
-      html += `<b>駐留:</b> ${occupant}`;
+      html += `<b>潜伏者:</b> ${occupant}`;
 
       inspector.innerHTML = html;
     }
@@ -414,7 +446,7 @@
       selectedTarget = { x: null, y: null };
       inspectedCell = { x: null, y: null };
       setCommandPhase('move');
-      document.getElementById('inspectorContent').innerHTML = 'マスをクリックすると詳細が表示されます。';
+      document.getElementById('inspectorContent').innerHTML = 'マスをクリックして気配や地形を探知してください。';
       document.getElementById('log').innerHTML = '';
       buildGrid(currentSettings.gridSize);
       renderGame();
@@ -428,8 +460,17 @@
 
       updateBadge();
 
+      // ダイナミック演出（画面揺れ ＆ フラッシュ）
+      const container = document.getElementById('mainGameContainer');
+      container.classList.add('shake-effect', 'flash-effect');
+      setTimeout(() => {
+        container.classList.remove('shake-effect', 'flash-effect');
+      }, 500);
+
       const logEl = document.getElementById('log');
-      data.logs.forEach(msg => {
+      const myEvents = data.playerEvents[socket.id] ? data.playerEvents[socket.id].logs : data.publicLogs;
+      
+      myEvents.forEach(msg => {
         const p = document.createElement('div');
         p.innerText = msg;
         logEl.appendChild(p);
@@ -484,11 +525,12 @@
       const size = currentSettings.gridSize || 14;
       const center = Math.floor(size / 2);
       const me = currentPlayers[socket.id];
-      const hostPlayer = currentPlayers[hostSocketId];
 
       if (me) {
         document.getElementById('myHp').innerText = me.hp;
         document.getElementById('ammoCount').innerText = me.ammo;
+        const wNameMap = { standard: '標準砲弾', sniper: 'スナイパー砲', grenade: 'グレネード' };
+        document.getElementById('myWeaponName').innerText = wNameMap[me.weapon] || '標準';
         
         const passiveEl = document.getElementById('passiveList');
         if (me.passives && me.passives.length > 0) {
@@ -504,9 +546,6 @@
           itemEl.innerHTML = '<li>なし</li>';
         }
       }
-
-      document.getElementById('hostName').innerText = hostPlayer ? hostPlayer.name : '-';
-      document.getElementById('aliveCount').innerText = Object.values(currentPlayers).filter(p => p.alive).length;
 
       for (let y = 0; y < size; y++) {
         for (let x = 0; x < size; x++) {
@@ -527,9 +566,9 @@
           }
 
           cell.classList.add(`elevation-${elevation}`);
-          let label = `H${elevation}`;
+          let label = elevation === -1 ? '💧' : `H${elevation}`;
 
-          if (cellData) {
+          if (cellData && elevation !== -1) {
             if (cellData.type === 'treasure') {
               cell.classList.add('treasure');
               label = cellData.opened ? '📦' : '🎁';
@@ -550,17 +589,19 @@
             
             if (currentPhase === 'move') {
               const hasEngine = me.passives.some(i => i.id === 'engine');
-              const maxMove = (curElev >= 2 || hasEngine) ? 2 : 1;
+              const wData = { sniper: 1 }[me.weapon] || 0;
+              const maxMove = (wData === 1) ? 1 : ((curElev >= 2 || hasEngine) ? 2 : 1);
               const diff = Math.abs(curElev - elevation);
               const dist = Math.abs(me.x - x) + Math.abs(me.y - y);
-              if (diff < 2 && dist <= maxMove) cell.classList.add('in-range-move');
+              if (elevation !== -1 && diff < 2 && dist <= maxMove) cell.classList.add('in-range-move');
             } else if (currentPhase === 'attack') {
               const hasScope = me.passives.some(i => i.id === 'scope');
-              let maxRange = 3 + (hasScope ? 1 : 0);
+              const wData = { sniper: { range: 5 }, grenade: { range: 2 } }[me.weapon] || { range: 3 };
+              let maxRange = wData.range + (hasScope ? 1 : 0);
               if (curElev > elevation) maxRange += (curElev - elevation);
               if (curElev < elevation) maxRange -= (elevation - curElev);
               const dist = Math.max(Math.abs(me.x - x), Math.abs(me.y - y));
-              if (dist <= Math.max(1, maxRange)) cell.classList.add('in-range-attack');
+              if (elevation !== -1 && dist <= Math.max(1, maxRange)) cell.classList.add('in-range-attack');
             }
           }
 
@@ -568,17 +609,10 @@
             cell.classList.add('selected');
           }
 
-          for (let id in currentPlayers) {
-            const p = currentPlayers[id];
-            if (p.x === x && p.y === y && p.alive) {
-              if (id === socket.id) {
-                cell.classList.add('me');
-                label = `自`;
-              } else {
-                cell.classList.add('enemy');
-                label = p.isBot ? `🤖` : `敵`;
-              }
-            }
+          // 自分の位置のみ表示（ステルス：他プレイヤーのアイコンは非表示）
+          if (me && me.x === x && me.y === y && me.alive) {
+            cell.classList.add('me');
+            label = `自`;
           }
 
           cell.innerText = label;
