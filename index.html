@@ -6,74 +6,78 @@
   <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #0f172a; color: #f8fafc; margin: 0; padding: 20px; }
     .hidden { display: none !important; }
-    #lobby, #game { max-width: 650px; margin: 0 auto; background: #1e293b; padding: 24px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+    #lobby, #game { max-width: 700px; margin: 0 auto; background: #1e293b; padding: 24px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
     
-    .status-card { display: flex; justify-content: space-around; background: #0f172a; padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #334155; }
+    /* 画面上部ダッシュボード（パラメータ統合） */
+    .dashboard { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; background: #0f172a; padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155; font-size: 13px; text-align: left; }
+    .dashboard div { background: #1e293b; padding: 8px; border-radius: 6px; border: 1px solid #334155; }
+    .dashboard span { font-weight: bold; color: #38bdf8; }
+
     .badge { padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 13px; }
     .badge-move { background: #0284c7; color: white; }
-    .badge-attack { background: #0d9488; color: white; } /* 攻撃モードはティール/青緑系に調整 */
+    .badge-attack { background: #0d9488; color: white; }
     .badge-waiting { background: #eab308; color: #1e293b; }
 
-    #grid { display: grid; gap: 4px; justify-content: center; margin: 20px auto; user-select: none; }
+    #grid { display: grid; gap: 4px; justify-content: center; margin: 15px auto; user-select: none; }
     
     .cell { width: 44px; height: 44px; background: #334155; border: 1px solid #475569; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 9px; cursor: pointer; transition: all 0.15s ease; position: relative; }
     
-    /* 高低差 H0〜H3 のグラデーション */
     .elevation-0 { background: #0f172a; }
     .elevation-1 { background: #1e293b; }
     .elevation-2 { background: #334155; }
     .elevation-3 { background: #64748b; font-weight: bold; }
 
-    /* 有効範囲のハイライト（移動は青、攻撃はシアン/青緑系に変更して毒沼と区別） */
     .cell.in-range-move { border: 2px dashed #38bdf8; background: rgba(3, 105, 161, 0.4); }
     .cell.in-range-attack { border: 2px dashed #2dd4bf; background: rgba(13, 148, 136, 0.4); } 
     .cell.in-range-move:hover, .cell.in-range-attack:hover { transform: scale(1.08); z-index: 10; }
 
-    /* 選択中の演出 */
-    .cell.selected-move { border: 2px solid #38bdf8 !important; background: #0369a1 !important; animation: pulse-blue 1.5s infinite; }
-    .cell.selected-attack { border: 2px solid #2dd4bf !important; background: #0f766e !important; animation: pulse-teal 1.5s infinite; }
-    
-    @keyframes pulse-blue { 0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7); } 70% { box-shadow: 0 0 0 8px rgba(56, 189, 248, 0); } 100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); } }
-    @keyframes pulse-teal { 0% { box-shadow: 0 0 0 0 rgba(45, 212, 191, 0.7); } 70% { box-shadow: 0 0 0 8px rgba(45, 212, 191, 0); } 100% { box-shadow: 0 0 0 0 rgba(45, 212, 191, 0); } }
+    .cell.selected-move { border: 2px solid #38bdf8 !important; background: #0369a1 !important; }
+    .cell.selected-attack { border: 2px solid #2dd4bf !important; background: #0f766e !important; }
 
     .cell.me { background: #2563eb !important; color: white; font-weight: bold; }
     .cell.enemy { background: #991b1b !important; color: white; }
     .cell.treasure { color: #f59e0b; font-weight: bold; }
     .cell.grass { color: #22c55e; }
-    .cell.safe-out { border: 2px dashed #ef4444; background: rgba(239, 68, 68, 0.2); animation: alert-flash 2s infinite; }
+    .cell.safe-out { border: 2px dashed #ef4444; background: rgba(239, 68, 68, 0.2); }
 
-    @keyframes alert-flash { 0%, 100% { background: rgba(239, 68, 68, 0.2); } 50% { background: rgba(239, 68, 68, 0.4); } }
-
-    #log { width: 100%; height: 130px; background: #0f172a; margin: 15px auto 0; padding: 12px; text-align: left; overflow-y: auto; font-size: 12px; border: 1px solid #334155; border-radius: 6px; box-sizing: border-box; line-height: 1.5; }
+    #log { width: 100%; height: 110px; background: #0f172a; margin: 10px auto 0; padding: 10px; text-align: left; overflow-y: auto; font-size: 11px; border: 1px solid #334155; border-radius: 6px; box-sizing: border-box; line-height: 1.4; }
     
-    button { padding: 10px 20px; font-size: 14px; font-weight: bold; cursor: pointer; background: #2563eb; color: white; border: none; border-radius: 6px; margin: 5px; transition: background 0.2s; }
+    button { padding: 8px 16px; font-size: 13px; font-weight: bold; cursor: pointer; background: #2563eb; color: white; border: none; border-radius: 6px; margin: 4px; transition: background 0.2s; }
     button:hover { background: #1d4ed8; }
     button.btn-danger { background: #e11d48; }
     button.btn-danger:hover { background: #be123c; }
     button.btn-success { background: #16a34a; }
     button.btn-success:hover { background: #15803d; }
 
-    select { padding: 8px; font-size: 14px; margin: 5px; background: #0f172a; color: #fff; border: 1px solid #334155; border-radius: 6px; }
+    select, input { padding: 6px; font-size: 13px; margin: 4px; background: #0f172a; color: #fff; border: 1px solid #334155; border-radius: 6px; }
   </style>
 </head>
 <body>
-  <h1>⚓ 海戦バトルロワイヤル (H0-H3 高低差版)</h1>
+  <h1>⚓ 海戦バトルロワイヤル</h1>
 
   <!-- ロビー画面 -->
   <div id="lobby">
     <h2>ゲームロビー</h2>
-    <div style="margin-bottom: 12px;">
+    
+    <div style="margin-bottom: 15px;">
+      <label>プレイヤー名: 
+        <input type="text" id="nameInput" maxlength="15" value="Player">
+      </label>
+      <button onclick="updateName()">名前変更</button>
+    </div>
+
+    <div style="margin-bottom: 10px;">
       <label>マップサイズ: 
-        <select id="gridSizeSelect" onchange="updateSettings()">
+        <select id="gridSizeSelect" onchange="updateSettings()" disabled>
           <option value="8">8 x 8</option>
           <option value="10" selected>10 x 10</option>
           <option value="12">12 x 12</option>
         </select>
       </label>
     </div>
-    <div style="margin-bottom: 20px;">
+    <div style="margin-bottom: 15px;">
       <label>Bot（NPC）数: 
-        <select id="botCountSelect" onchange="updateSettings()">
+        <select id="botCountSelect" onchange="updateSettings()" disabled>
           <option value="0">0体</option>
           <option value="1">1体</option>
           <option value="2">2体</option>
@@ -81,26 +85,33 @@
           <option value="5">5体</option>
         </select>
       </label>
+      <p id="hostNotice" style="font-size: 11px; color: #eab308; margin: 2px 0;">👑 ホストプレイヤーのみ設定を変更・ゲーム開始できます</p>
     </div>
+
     <h3>参加プレイヤー</h3>
-    <ul id="playerList" style="list-style: none; padding: 0; margin-bottom: 20px;"></ul>
+    <ul id="playerList" style="list-style: none; padding: 0; margin-bottom: 15px;"></ul>
     <div>
       <button id="readyBtn" onclick="toggleReady()">準備完了</button>
-      <button class="btn-success" onclick="startGame()">ゲーム開始</button>
+      <button id="startBtn" class="btn-success" onclick="startGame()" disabled>ゲーム開始 (ホスト専用)</button>
     </div>
   </div>
 
   <!-- ゲーム画面 -->
   <div id="game" class="hidden">
-    <div class="status-card">
+    <!-- 画面上部パラメータ・ダッシュボード -->
+    <div class="dashboard">
       <div>モード: <span id="modeBadge" class="badge badge-move">移動</span></div>
-      <div>選択マス: <span id="targetPos" style="font-weight: bold; color: #38bdf8;">未選択</span></div>
-      <div>残弾数: <span id="ammoCount" style="font-weight: bold; color: #f59e0b;">5</span> 発</div>
+      <div>選択位置: <span id="targetPos">未選択</span></div>
+      <div>HP: <span id="myHp">100</span> / 弾薬: <span id="ammoCount">5</span>발</div>
+      <div>持ち物: <span id="inventoryList">標準砲弾</span></div>
+      <div>生存者数: <span id="aliveCount">0</span>人</div>
+      <div>ホスト: <span id="hostName">-</span></div>
     </div>
     
     <div class="controls">
       <button id="modeBtn" onclick="toggleMode()">モード切替 (攻撃に変更)</button>
       <button class="btn-success" onclick="sendAction()">行動確定</button>
+      <button id="forceEndBtn" class="btn-danger hidden" onclick="forceEndGame()">ゲーム強制終了 (ホスト)</button>
       <button id="restartBtn" class="btn-danger hidden" onclick="returnToLobby()">ロビーに戻る</button>
     </div>
 
@@ -120,8 +131,14 @@
     let mapObjects = {};
     let gameState = 'lobby';
     let safeZoneRadius = 5;
+    let hostSocketId = null;
     let selectedActionType = 'move';
     let selectedTarget = { x: null, y: null };
+
+    function updateName() {
+      const name = document.getElementById('nameInput').value;
+      socket.emit('updateName', name);
+    }
 
     function updateSettings() {
       const size = document.getElementById('gridSizeSelect').value;
@@ -135,6 +152,12 @@
 
     function startGame() {
       socket.emit('startGame');
+    }
+
+    function forceEndGame() {
+      if (confirm('本当にゲームを終了してロビーに戻りますか？')) {
+        socket.emit('forceEndGame');
+      }
     }
 
     function returnToLobby() {
@@ -181,7 +204,6 @@
         const elevationDiff = Math.abs(currentElevation - targetElevation);
         const maxMove = currentElevation >= 2 ? 2 : 1;
         const dist = Math.abs(myX - x) + Math.abs(myY - y);
-        // 差が2以上は移動不可
         return elevationDiff < 2 && dist <= maxMove;
       } else {
         let maxRange = 3;
@@ -215,6 +237,23 @@
       currentPlayers = data.players;
       gameState = data.gameState;
       safeZoneRadius = data.safeZoneRadius || 5;
+      hostSocketId = data.hostSocketId;
+
+      const isHost = (socket.id === hostSocketId);
+
+      // ホスト権限のUI制御
+      document.getElementById('gridSizeSelect').disabled = !isHost;
+      document.getElementById('botCountSelect').disabled = !isHost;
+      const startBtn = document.getElementById('startBtn');
+      startBtn.disabled = !isHost;
+      startBtn.innerText = isHost ? 'ゲーム開始' : 'ゲーム開始 (ホスト待ち)';
+
+      const forceEndBtn = document.getElementById('forceEndBtn');
+      if (isHost && gameState === 'playing') {
+        forceEndBtn.classList.remove('hidden');
+      } else {
+        forceEndBtn.classList.add('hidden');
+      }
 
       if (gameState === 'lobby') {
         document.getElementById('lobby').classList.remove('hidden');
@@ -232,6 +271,7 @@
 
         if (gameState === 'ended') {
           document.getElementById('restartBtn').classList.remove('hidden');
+          forceEndBtn.classList.add('hidden');
         }
         
         renderGame();
@@ -274,6 +314,7 @@
 
       if (gameState === 'ended') {
         document.getElementById('restartBtn').classList.remove('hidden');
+        document.getElementById('forceEndBtn').classList.add('hidden');
       }
 
       renderGame();
@@ -284,9 +325,10 @@
       listEl.innerHTML = '';
       for (let id in currentPlayers) {
         const p = currentPlayers[id];
+        const isHost = (id === hostSocketId);
         const li = document.createElement('li');
         li.style.padding = '6px';
-        li.innerText = `${p.name} - ${p.ready ? '✅ 準備完了' : '⏳ 待機中'}`;
+        li.innerText = `${isHost ? '👑 ' : ''}${p.name} - ${p.ready ? '✅ 準備完了' : '⏳ 待機中'}`;
         listEl.appendChild(li);
       }
     }
@@ -311,10 +353,15 @@
       const size = currentSettings.gridSize || 10;
       const center = Math.floor(size / 2);
       const me = currentPlayers[socket.id];
+      const hostPlayer = currentPlayers[hostSocketId];
 
       if (me) {
+        document.getElementById('myHp').innerText = me.hp;
         document.getElementById('ammoCount').innerText = me.ammo;
+        document.getElementById('inventoryList').innerText = me.inventory.join(', ');
       }
+      document.getElementById('hostName').innerText = hostPlayer ? hostPlayer.name : '-';
+      document.getElementById('aliveCount').innerText = Object.values(currentPlayers).filter(p => p.alive).length;
 
       for (let y = 0; y < size; y++) {
         for (let x = 0; x < size; x++) {
