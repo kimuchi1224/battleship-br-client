@@ -4,35 +4,45 @@
   <meta charset="UTF-8">
   <title>海戦バトルロワイヤル</title>
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #0f172a; color: #f8fafc; margin: 0; padding: 20px; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #090d16; color: #f8fafc; margin: 0; padding: 20px; }
     .hidden { display: none !important; }
-    #lobby, #game { max-width: 700px; margin: 0 auto; background: #1e293b; padding: 24px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
     
-    /* 画面上部ダッシュボード（パラメータ統合） */
-    .dashboard { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; background: #0f172a; padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #334155; font-size: 13px; text-align: left; }
-    .dashboard div { background: #1e293b; padding: 8px; border-radius: 6px; border: 1px solid #334155; }
+    #lobby { max-width: 650px; margin: 0 auto; background: #1e293b; padding: 24px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+    
+    /* ゲーム画面全体を2カラムに分割 */
+    #game { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr 320px; gap: 20px; text-align: left; }
+    .game-main { background: #1e293b; padding: 20px; border-radius: 12px; border: 1px solid #334155; }
+    .game-sidebar { display: flex; flex-direction: column; gap: 15px; }
+
+    .panel { background: #1e293b; padding: 16px; border-radius: 12px; border: 1px solid #334155; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    
+    .dashboard { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px; font-size: 12px; }
+    .dashboard div { background: #0f172a; padding: 8px; border-radius: 6px; border: 1px solid #334155; }
     .dashboard span { font-weight: bold; color: #38bdf8; }
 
-    .badge { padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 13px; }
+    .badge { padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 12px; display: inline-block; }
     .badge-move { background: #0284c7; color: white; }
     .badge-attack { background: #0d9488; color: white; }
     .badge-waiting { background: #eab308; color: #1e293b; }
 
-    #grid { display: grid; gap: 4px; justify-content: center; margin: 15px auto; user-select: none; }
+    #grid { display: grid; gap: 3px; justify-content: center; margin: 15px auto; user-select: none; }
     
-    .cell { width: 44px; height: 44px; background: #334155; border: 1px solid #475569; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 9px; cursor: pointer; transition: all 0.15s ease; position: relative; }
+    .cell { width: 38px; height: 38px; background: #334155; border: 1px solid #475569; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 9px; cursor: pointer; transition: all 0.12s ease; position: relative; }
     
-    .elevation-0 { background: #0f172a; }
-    .elevation-1 { background: #1e293b; }
-    .elevation-2 { background: #334155; }
-    .elevation-3 { background: #64748b; font-weight: bold; }
+    /* 高低差 H0〜H3 グラデーション */
+    .elevation-0 { background: #0b1329; color: #94a3b8; }
+    .elevation-1 { background: #1b263b; color: #cbd5e1; }
+    .elevation-2 { background: #334155; color: #f1f5f9; }
+    .elevation-3 { background: #475569; color: #ffffff; font-weight: bold; }
+
+    /* 視界外（フォグ） */
+    .cell.fog { background: #05070a !important; border-color: #111827; color: #1f2937 !important; }
 
     .cell.in-range-move { border: 2px dashed #38bdf8; background: rgba(3, 105, 161, 0.4); }
     .cell.in-range-attack { border: 2px dashed #2dd4bf; background: rgba(13, 148, 136, 0.4); } 
-    .cell.in-range-move:hover, .cell.in-range-attack:hover { transform: scale(1.08); z-index: 10; }
+    .cell.in-range-move:hover, .cell.in-range-attack:hover { transform: scale(1.06); z-index: 10; }
 
-    .cell.selected-move { border: 2px solid #38bdf8 !important; background: #0369a1 !important; }
-    .cell.selected-attack { border: 2px solid #2dd4bf !important; background: #0f766e !important; }
+    .cell.selected { border: 2px solid #fbbf24 !important; box-shadow: 0 0 8px rgba(251, 191, 36, 0.7); z-index: 5; }
 
     .cell.me { background: #2563eb !important; color: white; font-weight: bold; }
     .cell.enemy { background: #991b1b !important; color: white; }
@@ -40,7 +50,7 @@
     .cell.grass { color: #22c55e; }
     .cell.safe-out { border: 2px dashed #ef4444; background: rgba(239, 68, 68, 0.2); }
 
-    #log { width: 100%; height: 110px; background: #0f172a; margin: 10px auto 0; padding: 10px; text-align: left; overflow-y: auto; font-size: 11px; border: 1px solid #334155; border-radius: 6px; box-sizing: border-box; line-height: 1.4; }
+    #log { width: 100%; height: 160px; background: #0f172a; margin-top: 5px; padding: 10px; text-align: left; overflow-y: auto; font-size: 11px; border: 1px solid #334155; border-radius: 6px; box-sizing: border-box; line-height: 1.4; }
     
     button { padding: 8px 16px; font-size: 13px; font-weight: bold; cursor: pointer; background: #2563eb; color: white; border: none; border-radius: 6px; margin: 4px; transition: background 0.2s; }
     button:hover { background: #1d4ed8; }
@@ -53,36 +63,31 @@
   </style>
 </head>
 <body>
-  <h1>⚓ 海戦バトルロワイヤル</h1>
+  <h1 style="text-align: center; margin-bottom: 20px;">⚓ 海戦バトルロワイヤル</h1>
 
   <!-- ロビー画面 -->
   <div id="lobby">
     <h2>ゲームロビー</h2>
-    
     <div style="margin-bottom: 15px;">
-      <label>プレイヤー名: 
-        <input type="text" id="nameInput" maxlength="15" value="Player">
-      </label>
+      <label>プレイヤー名: <input type="text" id="nameInput" maxlength="15" value="Player"></label>
       <button onclick="updateName()">名前変更</button>
     </div>
 
     <div style="margin-bottom: 10px;">
       <label>マップサイズ: 
         <select id="gridSizeSelect" onchange="updateSettings()" disabled>
-          <option value="8">8 x 8</option>
-          <option value="10" selected>10 x 10</option>
           <option value="12">12 x 12</option>
+          <option value="14" selected>14 x 14</option>
+          <option value="16">16 x 16</option>
         </select>
       </label>
     </div>
     <div style="margin-bottom: 15px;">
       <label>Bot（NPC）数: 
         <select id="botCountSelect" onchange="updateSettings()" disabled>
-          <option value="0">0体</option>
-          <option value="1">1体</option>
           <option value="2">2体</option>
-          <option value="3" selected>3体</option>
-          <option value="5">5体</option>
+          <option value="4" selected>4体</option>
+          <option value="6">6体</option>
         </select>
       </label>
       <p id="hostNotice" style="font-size: 11px; color: #eab308; margin: 2px 0;">👑 ホストプレイヤーのみ設定を変更・ゲーム開始できます</p>
@@ -96,29 +101,50 @@
     </div>
   </div>
 
-  <!-- ゲーム画面 -->
+  <!-- ゲーム画面 (2カラム) -->
   <div id="game" class="hidden">
-    <!-- 画面上部パラメータ・ダッシュボード -->
-    <div class="dashboard">
-      <div>モード: <span id="modeBadge" class="badge badge-move">移動</span></div>
-      <div>選択位置: <span id="targetPos">未選択</span></div>
-      <div>HP: <span id="myHp">100</span> / 弾薬: <span id="ammoCount">5</span>발</div>
-      <div>持ち物: <span id="inventoryList">標準砲弾</span></div>
-      <div>生存者数: <span id="aliveCount">0</span>人</div>
-      <div>ホスト: <span id="hostName">-</span></div>
-    </div>
-    
-    <div class="controls">
-      <button id="modeBtn" onclick="toggleMode()">モード切替 (攻撃に変更)</button>
-      <button class="btn-success" onclick="sendAction()">行動確定</button>
-      <button id="forceEndBtn" class="btn-danger hidden" onclick="forceEndGame()">ゲーム強制終了 (ホスト)</button>
-      <button id="restartBtn" class="btn-danger hidden" onclick="returnToLobby()">ロビーに戻る</button>
+    <!-- 左メイン：グリッドマップ -->
+    <div class="game-main">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <div>モード: <span id="modeBadge" class="badge badge-move">移動</span></div>
+        <div>
+          <button id="modeBtn" onclick="toggleMode()">モード切替 (攻撃)</button>
+          <button class="btn-success" onclick="sendAction()">行動確定</button>
+          <button id="forceEndBtn" class="btn-danger hidden" onclick="forceEndGame()">強制終了</button>
+          <button id="restartBtn" class="btn-danger hidden" onclick="returnToLobby()">ロビーに戻る</button>
+        </div>
+      </div>
+      <div id="grid"></div>
     </div>
 
-    <div id="grid"></div>
+    <!-- 右サイドバー：パラメータ＆詳細インスペクター -->
+    <div class="game-sidebar">
+      <!-- ステータスダッシュボード -->
+      <div class="panel">
+        <h3 style="margin-top:0; font-size:15px; border-bottom:1px solid #334155; padding-bottom:8px;">ステータス</h3>
+        <div class="dashboard">
+          <div>HP: <span id="myHp">100</span></div>
+          <div>弾薬: <span id="ammoCount">8</span>発</div>
+          <div>生存: <span id="aliveCount">0</span>人</div>
+          <div>ホスト: <span id="hostName">-</span></div>
+        </div>
+        <div style="font-size: 12px; margin-top: 6px;">所持品: <span id="inventoryList" style="color: #38bdf8;">標準砲弾</span></div>
+      </div>
 
-    <h3>戦闘ログ</h3>
-    <div id="log"></div>
+      <!-- 詳細情報インスペクター -->
+      <div class="panel">
+        <h3 style="margin-top:0; font-size:15px; border-bottom:1px solid #334155; padding-bottom:8px;">🔍 マス詳細インスペクター</h3>
+        <div id="inspectorContent" style="font-size: 12px; line-height: 1.6; color: #cbd5e1;">
+          マスをクリックすると詳細が表示されます。
+        </div>
+      </div>
+
+      <!-- 戦闘ログ -->
+      <div class="panel" style="flex-grow: 1;">
+        <h3 style="margin-top:0; font-size:15px; border-bottom:1px solid #334155; padding-bottom:8px;">戦闘ログ</h3>
+        <div id="log"></div>
+      </div>
+    </div>
   </div>
 
   <!-- ⚠️ ご自身の Render URL に書き換えてください -->
@@ -126,14 +152,15 @@
   <script>
     const socket = io("https://battleship-br.onrender.com");
 
-    let currentSettings = { gridSize: 10, botCount: 3 };
+    let currentSettings = { gridSize: 14, botCount: 4 };
     let currentPlayers = {};
     let mapObjects = {};
     let gameState = 'lobby';
-    let safeZoneRadius = 5;
+    let safeZoneRadius = 7;
     let hostSocketId = null;
     let selectedActionType = 'move';
     let selectedTarget = { x: null, y: null };
+    let inspectedCell = { x: null, y: null }; // 詳細インスペクター用
 
     function updateName() {
       const name = document.getElementById('nameInput').value;
@@ -170,11 +197,11 @@
       const badge = document.getElementById('modeBadge');
 
       if (selectedActionType === 'move') {
-        modeBtn.innerText = 'モード切替 (攻撃に変更)';
+        modeBtn.innerText = 'モード切替 (攻撃)';
         badge.innerText = '移動';
         badge.className = 'badge badge-move';
       } else {
-        modeBtn.innerText = 'モード切替 (移動に変更)';
+        modeBtn.innerText = 'モード切替 (移動)';
         badge.innerText = '攻撃';
         badge.className = 'badge badge-attack';
       }
@@ -182,42 +209,56 @@
     }
 
     function selectCell(x, y) {
-      const me = currentPlayers[socket.id];
-      if (!me) return;
-
-      if (isCellInRange(x, y, me.x, me.y, selectedActionType)) {
-        selectedTarget = { x, y };
-        document.getElementById('targetPos').innerText = `(${x}, ${y})`;
-        renderGame();
-      } else {
-        alert('そのマスは高低差または射程の制限により選択できません！');
-      }
+      // 自由選択可能：クリックしたマスをインスペクトし、かつ行動のターゲットにセットする
+      inspectedCell = { x, y };
+      selectedTarget = { x, y };
+      renderGame();
+      updateInspector(x, y);
     }
 
-    function isCellInRange(x, y, myX, myY, type) {
-      const currentCell = mapObjects[`${myX},${myY}`];
-      const targetCell = mapObjects[`${x},${y}`];
-      const currentElevation = currentCell ? currentCell.elevation : 1;
-      const targetElevation = targetCell ? targetCell.elevation : 1;
+    function updateInspector(x, y) {
+      const inspector = document.getElementById('inspectorContent');
+      const key = `${x},${y}`;
+      const cellData = mapObjects[key];
+      const me = currentPlayers[socket.id];
 
-      if (type === 'move') {
-        const elevationDiff = Math.abs(currentElevation - targetElevation);
-        const maxMove = currentElevation >= 2 ? 2 : 1;
-        const dist = Math.abs(myX - x) + Math.abs(myY - y);
-        return elevationDiff < 2 && dist <= maxMove;
-      } else {
-        let maxRange = 3;
-        if (currentElevation > targetElevation) maxRange += (currentElevation - targetElevation);
-        if (currentElevation < targetElevation) maxRange -= (targetElevation - currentElevation);
-
-        const dist = Math.max(Math.abs(myX - x), Math.abs(myY - y));
-        return dist <= Math.max(1, maxRange);
+      if (!cellData) {
+        inspector.innerHTML = `座標: (${x}, ${y})<br>情報なし`;
+        return;
       }
+
+      // 視界外（フォグ）かチェック
+      const isVisible = me && Math.max(Math.abs(me.x - x), Math.abs(me.y - y)) <= 3;
+      
+      let html = `<b>座標:</b> (${x}, ${y})<br>`;
+      if (!isVisible) {
+        html += `<span style="color: #ef4444;">⚠️ 視界外（霧に包まれています）</span>`;
+        inspector.innerHTML = html;
+        return;
+      }
+
+      html += `<b>高低差:</b> H${cellData.elevation}<br>`;
+      let objName = 'なし（平地）';
+      if (cellData.type === 'treasure') objName = cellData.opened ? '宝箱 (空)' : '宝箱 (未開封)';
+      if (cellData.type === 'grass') objName = '草原';
+      html += `<b>地形:</b> ${objName}<br>`;
+
+      // そのマスにいるプレイヤー・敵の確認
+      let occupant = 'なし';
+      for (let id in currentPlayers) {
+        const p = currentPlayers[id];
+        if (p.x === x && p.y === y && p.alive) {
+          occupant = (id === socket.id) ? `あなた (${p.name})` : p.name;
+        }
+      }
+      html += `<b>駐留:</b> ${occupant}`;
+
+      inspector.innerHTML = html;
     }
 
     function sendAction() {
       if (selectedTarget.x === null) {
-        alert('有効なマスを選択してください');
+        alert('対象のマスを選択してください');
         return;
       }
       socket.emit('submitAction', {
@@ -236,12 +277,11 @@
     socket.on('updateState', (data) => {
       currentPlayers = data.players;
       gameState = data.gameState;
-      safeZoneRadius = data.safeZoneRadius || 5;
+      safeZoneRadius = data.safeZoneRadius || 7;
       hostSocketId = data.hostSocketId;
 
       const isHost = (socket.id === hostSocketId);
 
-      // ホスト権限のUI制御
       document.getElementById('gridSizeSelect').disabled = !isHost;
       document.getElementById('botCountSelect').disabled = !isHost;
       const startBtn = document.getElementById('startBtn');
@@ -288,7 +328,8 @@
       currentSettings = data.settings;
       mapObjects = data.mapObjects;
       selectedTarget = { x: null, y: null };
-      document.getElementById('targetPos').innerText = '未選択';
+      inspectedCell = { x: null, y: null };
+      document.getElementById('inspectorContent').innerHTML = 'マスをクリックすると詳細が表示されます。';
       document.getElementById('log').innerHTML = '';
       buildGrid(currentSettings.gridSize);
       renderGame();
@@ -318,6 +359,9 @@
       }
 
       renderGame();
+      if (inspectedCell.x !== null) {
+        updateInspector(inspectedCell.x, inspectedCell.y);
+      }
     });
 
     function renderPlayerList() {
@@ -335,7 +379,7 @@
 
     function buildGrid(size) {
       const gridEl = document.getElementById('grid');
-      gridEl.style.gridTemplateColumns = `repeat(${size}, 44px)`;
+      gridEl.style.gridTemplateColumns = `repeat(${size}, 38px)`;
       gridEl.innerHTML = '';
 
       for (let y = 0; y < size; y++) {
@@ -350,7 +394,7 @@
     }
 
     function renderGame() {
-      const size = currentSettings.gridSize || 10;
+      const size = currentSettings.gridSize || 14;
       const center = Math.floor(size / 2);
       const me = currentPlayers[socket.id];
       const hostPlayer = currentPlayers[hostSocketId];
@@ -373,6 +417,15 @@
           const cellData = mapObjects[key];
           const elevation = cellData ? cellData.elevation : 1;
 
+          // 視界制限（フォグ・オブ・ウォー）：自分から距離3以内以外は霧に包む
+          const isVisible = me && Math.max(Math.abs(me.x - x), Math.abs(me.y - y)) <= 3;
+
+          if (!isVisible) {
+            cell.classList.add('fog');
+            cell.innerText = '🌁';
+            continue;
+          }
+
           cell.classList.add(`elevation-${elevation}`);
           let label = `H${elevation}`;
 
@@ -391,30 +444,37 @@
             cell.classList.add('safe-out');
           }
 
+          // 範囲内ハイライト
           if (me && me.alive) {
-            if (isCellInRange(x, y, me.x, me.y, selectedActionType)) {
-              if (selectedActionType === 'move') {
-                cell.classList.add('in-range-move');
-              } else {
-                cell.classList.add('in-range-attack');
-              }
-            }
-          }
-
-          if (selectedTarget.x === x && selectedTarget.y === y) {
+            const currentCell = mapObjects[`${me.x},${me.y}`];
+            const curElev = currentCell ? currentCell.elevation : 1;
+            
             if (selectedActionType === 'move') {
-              cell.classList.add('selected-move');
+              const maxMove = curElev >= 2 ? 2 : 1;
+              const diff = Math.abs(curElev - elevation);
+              const dist = Math.abs(me.x - x) + Math.abs(me.y - y);
+              if (diff < 2 && dist <= maxMove) cell.classList.add('in-range-move');
             } else {
-              cell.classList.add('selected-attack');
+              let maxRange = 3;
+              if (curElev > elevation) maxRange += (curElev - elevation);
+              if (curElev < elevation) maxRange -= (elevation - curElev);
+              const dist = Math.max(Math.abs(me.x - x), Math.abs(me.y - y));
+              if (dist <= Math.max(1, maxRange)) cell.classList.add('in-range-attack');
             }
           }
 
+          // 選択枠
+          if (selectedTarget.x === x && selectedTarget.y === y) {
+            cell.classList.add('selected');
+          }
+
+          // プレイヤー描画（視界内のみ）
           for (let id in currentPlayers) {
             const p = currentPlayers[id];
             if (p.x === x && p.y === y && p.alive) {
               if (id === socket.id) {
                 cell.classList.add('me');
-                label = `自:${p.hp}`;
+                label = `自`;
               } else {
                 cell.classList.add('enemy');
                 label = p.isBot ? `🤖` : `敵`;
